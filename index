@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>레트로 포켓몬 도감 (Pokédex)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Press Start 2P Font for Retro Feel -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #1a1a2e;
+      color: #333;
+      user-select: none;
+    }
+    
+    .pixel-font {
+      font-family: 'Press Start 2P', 'Noto Sans KR', cursive;
+    }
+
+    /* Pokédex Chassis Metallic Red Gradient */
+    .pokedex-body {
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3), 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Screen Glass Inner Shadow & Scanline Effect */
+    .screen-glass {
+      background: #22c55e;
+      background: linear-gradient(180deg, #86efac 0%, #4ade80 100%);
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
+    }
+
+    .screen-glass::before {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+      background-size: 100% 4px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Custom Scrollbar for Screen */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #15803d;
+      border-radius: 4px;
+    }
+
+    /* LED Lights Pulse Effect */
+    @keyframes pulse-fast {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .light-blink {
+      animation: pulse-fast 1.2s infinite;
+    }
+
+    /* Retro D-Pad Button Styling */
+    .d-pad-btn {
+      background-color: #374151;
+      box-shadow: 0 4px 0 #1f2937;
+      transition: all 0.1s ease;
+    }
+    .d-pad-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1f2937;
+    }
+
+    /* Stat Bar Animation */
+    .stat-bar-fill {
+      transition: width 0.6s ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-6">
+
+  <!-- Main Pokédex Container -->
+  <div class="pokedex-body w-full max-w-4xl rounded-2xl border-4 border-red-900 p-4 sm:p-6 shadow-2xl relative">
+    
+    <!-- Top Camera Lens and Lights -->
+    <div class="flex items-center justify-between border-b-4 border-red-900 pb-4 mb-4">
+      <div class="flex items-center space-x-3">
+        <!-- Main Blue Lens -->
+        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-500 border-4 border-white shadow-lg flex items-center justify-center relative overflow-hidden">
+          <div class="w-4 h-4 rounded-full bg-white opacity-80 absolute top-2 left-2"></div>
+          <div class="w-full h-full bg-blue-400 rounded-full light-blink"></div>
+        </div>
+        <!-- Small Lights -->
+        <div class="flex space-x-2">
+          <div class="w-4 h-4 rounded-full bg-red-500 border-2 border-red-800"></div>
+          <div class="w-4 h-4 rounded-full bg-yellow-400 border-2 border-yellow-700"></div>
+          <div class="w-4 h-4 rounded-full bg-green-500 border-2 border-green-800"></div>
+        </div>
+      </div>
+      <div class="pixel-font text-white text-xs sm:text-sm tracking-widest hidden sm:block">
+        포켓몬 도감 v2.0
+      </div>
+    </div>
+
+    <!-- Main Layout Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column: Primary Display & Controls -->
+      <div class="lg:col-span-7 flex flex-col items-center">
+        
+        <!-- Screen Outer Bezel -->
+        <div class="bg-gray-200 border-4 border-gray-400 rounded-xl p-4 w-full shadow-inner flex flex-col items-center">
+          
+          <!-- Bezel Top Dots -->
+          <div class="flex justify-center space-x-4 mb-2">
+            <span class="w-2.5 h-2.5 bg-red-600 rounded-full inline-block"></span>
+            <span class="w-2.5 h-2.5 bg-red-600 rounded-full inline-block"></span>
+          </div>
+
+          <!-- Main Screen View -->
+          <div id="main-screen" class="screen-glass border-4 border-gray-700 rounded-lg p-4 w-full h-80 flex flex-col justify-between text-gray-900 relative">
+            
+            <!-- Loading Indicator Overlay -->
+            <div id="loading-spinner" class="hidden absolute inset-0 bg-green-300 bg-opacity-80 flex flex-col items-center justify-center z-20">
+              <i class="fa-solid fa-spinner fa-spin text-4xl text-green-900 mb-2"></i>
+              <span class="font-bold text-sm text-green-900 pixel-font">데이터 로딩 중...</span>
+            </div>
+
+            <!-- Screen Header (ID & Name) -->
+            <div class="flex justify-between items-center border-b border-green-800 pb-1 z-10">
+              <span id="poke-id" class="font-black text-lg pixel-font text-green-950">No.0001</span>
+              <span id="poke-name" class="font-black text-xl text-green-950 tracking-wider">이상해씨</span>
+            </div>
+
+            <!-- Pokemon Graphic & Quick Info -->
+            <div class="flex flex-row items-center justify-around my-2 z-10">
+              <div class="relative w-36 h-36 flex items-center justify-center">
+                <img id="poke-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png" alt="포켓몬" class="max-w-full max-h-full object-contain filter drop-shadow-md">
+              </div>
+              <div class="flex flex-col space-y-1 text-xs sm:text-sm font-bold text-green-950">
+                <div>키: <span id="poke-height" class="font-normal">0.7m</span></div>
+                <div>무게: <span id="poke-weight" class="font-normal">6.9kg</span></div>
+                <div>분류: <span id="poke-genus" class="font-normal">씨앗포켓몬</span></div>
+                <div class="flex space-x-1 mt-1" id="poke-types">
+                  <!-- Type badges injected dynamically -->
+                  <span class="px-2 py-0.5 bg-green-700 text-white rounded text-xs">풀</span>
+                  <span class="px-2 py-0.5 bg-purple-700 text-white rounded text-xs">독</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flavor Text Description -->
+            <div class="border-t border-green-800 pt-1 h-16 overflow-y-auto custom-scrollbar text-xs font-semibold leading-relaxed text-green-950 z-10" id="poke-desc">
+              태어나서부터 얼마 동안은 등애 있는 씨앗으로부터 영양을 공급받아 크게 자란다.
+            </div>
+          </div>
+
+          <!-- Bezel Bottom Speakers & Mic -->
+          <div class="w-full flex justify-between items-center mt-3 px-2">
+            <div class="w-8 h-8 rounded-full bg-red-600 border-2 border-red-800 shadow cursor-pointer active:scale-95 transition-transform" id="speaker-btn" title="소리 효과">
+              <i class="fa-solid fa-volume-high text-white text-xs flex items-center justify-center h-full"></i>
+            </div>
+            <div class="flex space-x-2">
+              <div class="w-12 h-2 bg-gray-600 rounded-full"></div>
+              <div class="w-12 h-2 bg-gray-600 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Left Controls Area -->
+        <div class="flex items-center justify-between w-full mt-4 px-2">
+          <!-- Cross D-Pad Controls -->
+          <div class="relative w-28 h-28">
+            <button id="btn-up" class="d-pad-btn absolute top-0 left-9 w-10 h-10 rounded-t-md flex items-center justify-center text-white"><i class="fa-solid fa-caret-up"></i></button>
+            <button id="btn-down" class="d-pad-btn absolute bottom-0 left-9 w-10 h-10 rounded-b-md flex items-center justify-center text-white"><i class="fa-solid fa-caret-down"></i></button>
+            <button id="btn-left" class="d-pad-btn absolute top-9 left-0 w-10 h-10 rounded-l-md flex items-center justify-center text-white"><i class="fa-solid fa-caret-left"></i></button>
+            <button id="btn-right" class="d-pad-btn absolute top-9 right-0 w-10 h-10 rounded-r-md flex items-center justify-center text-white"><i class="fa-solid fa-caret-right"></i></button>
+            <div class="absolute top-9 left-9 w-10 h-10 bg-gray-700 pointer-events-none"></div>
+          </div>
+
+          <!-- Center Mode / Decorative Buttons -->
+          <div class="flex flex-col space-y-2">
+            <div class="flex space-x-2">
+              <button id="btn-prev" class="px-4 py-2 bg-black text-red-500 rounded border-2 border-gray-600 font-bold text-xs hover:bg-gray-900 active:scale-95">이전</button>
+              <button id="btn-next" class="px-4 py-2 bg-black text-red-500 rounded border-2 border-gray-600 font-bold text-xs hover:bg-gray-900 active:scale-95">다음</button>
+            </div>
+            <button id="btn-random" class="w-full py-1.5 bg-yellow-500 text-black font-bold text-xs rounded border border-yellow-600 hover:bg-yellow-400 active:scale-95 shadow">랜덤 포켓몬</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Search, Filtering & Detailed Stats -->
+      <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+        
+        <!-- Search Bar Section -->
+        <div class="bg-gray-800 p-3 rounded-xl border-2 border-gray-700 shadow">
+          <label class="block text-white text-xs font-bold mb-1"><i class="fa-solid fa-magnifying-glass"></i> 포켓몬 검색 (이름 또는 번호)</label>
+          <div class="flex space-x-2">
+            <input type="text" id="search-input" placeholder="예: 피카츄 또는 25" class="w-full px-3 py-1.5 rounded bg-gray-900 text-white border border-gray-600 text-sm focus:outline-none focus:border-red-500">
+            <button id="search-btn" class="px-4 py-1.5 bg-red-600 text-white font-bold rounded text-sm hover:bg-red-500 active:scale-95 transition">검색</button>
+          </div>
+        </div>
+
+        <!-- Type Filter Buttons Section -->
+        <div class="bg-gray-800 p-3 rounded-xl border-2 border-gray-700 shadow">
+          <label class="block text-white text-xs font-bold mb-2"><i class="fa-solid fa-filter"></i> 속성/타입 필터</label>
+          <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1" id="type-filter-container">
+            <!-- Filter badges generated by JS -->
+          </div>
+        </div>
+
+        <!-- Detailed Stats Panel -->
+        <div class="bg-gray-900 p-4 rounded-xl border-2 border-gray-700 shadow flex-grow flex flex-col justify-between">
+          <h3 class="text-white text-xs font-bold mb-2 border-b border-gray-700 pb-1 flex justify-between items-center">
+            <span><i class="fa-solid fa-chart-simple"></i> 기본 능력치 (Base Stats)</span>
+            <span id="stat-total" class="text-yellow-400 pixel-font text-[10px]">총합: 318</span>
+          </h3>
+
+          <div class="space-y-2 text-xs font-bold text-gray-300" id="stats-container">
+            <!-- HP Stat -->
+            <div>
+              <div class="flex justify-between mb-0.5">
+                <span>HP</span>
+                <span id="stat-hp-val" class="text-white">45</span>
+              </div>
+              <div class="w-full bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                <div id="stat-hp-bar" class="bg-red-500 h-full rounded-full stat-bar-fill" style="width: 18%;"></div>
+              </div>
+            </div>
+
+            <!-- Attack Stat -->
+            <div>
+              <div class="flex justify-between mb-0.5">
+                <span>공격</span>
+                <span id="stat-atk-val" class="text-white">49</span>
+              </div>
+              <div class="w-full bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                <div id="stat-atk-bar" class="bg-orange-500 h-full rounded-full stat-bar-fill" style="width: 20%;"></div>
+              </div>
+            </div>
+
+            <!-- Defense Stat -->
+            <div>
+              <div class="flex justify-between mb-0.5">
+                <span>방어</span>
+                <span id="stat-def-val" class="text-white">49</span>
+              </div>
+              <div class="w-full bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                <div id="stat-def-bar" class="bg-yellow-500 h-full rounded-full stat-bar-fill" style="width: 20%;"></div>
+              </div>
+            </div>
+
+            <!-- Sp. Atk Stat -->
+            <div>
+              <div class="flex justify-between mb-0.5">
+                <span>특수공격</span>
+                <span id="stat-spatk-val" class="text-white">65</span>
+              </div>
+              <div class="w-full bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                <div id="stat-spatk-bar" class="bg-blue-500 h-full rounded-full stat-bar-fill" style="width: 26%;"></div>
+              </div>
+            </div>
+
+            <!-- Sp. Def Stat -->
+            <div>
+              <div class="flex justify-between mb-0.5">
+                <span>특수방어</span>
+                <span id="stat-spdef-val" class="text-white">65</span>
+              </div>
+              <div class="w-full bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                <div id="stat-spdef-bar" class="bg-green-500 h-full rounded-full stat-bar-fill" style="width: 26%;"></div>
+              </div>
+            </div>
+
+            <!-- Speed Stat -->
+            <div>
+              <div class="flex justify-between mb-0.5">
+                <span>스피드</span>
+                <span id="stat-speed-val" class="text-white">45</span>
+              </div>
+              <div class="w-full bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                <div id="stat-speed-bar" class="bg-pink-500 h-full rounded-full stat-bar-fill" style="width: 18%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Alert Toast Message Box -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-red-600 text-white px-4 py-2.5 rounded-lg shadow-xl hidden z-50 flex items-center space-x-2 border border-red-400">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <span id="toast-message" class="text-sm font-bold">오류 메시지</span>
+  </div>
+
+  <!-- Audio Effects using Web Audio API -->
+  <script>
+    // Web Audio API Synthesizer for Retro SFX
+    class RetroAudio {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+
+      playBeep(freq = 440, type = 'square', duration = 0.08) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) { console.log(e); }
+      }
+
+      playSuccess() {
+        this.playBeep(523.25, 'square', 0.08);
+        setTimeout(() => this.playBeep(659.25, 'square', 0.1), 80);
+      }
+    }
+
+    const audioSFX = new RetroAudio();
+  </script>
+
+  <!-- Application Logic JS -->
+  <script>
+    // Official Korean Type Names Mapping and Colors
+    const POKEMON_TYPES_KO = {
+      normal: { name: '노말', color: 'bg-gray-400' },
+      fire: { name: '불꽃', color: 'bg-red-500' },
+      water: { name: '물', color: 'bg-blue-500' },
+      grass: { name: '풀', color: 'bg-green-500' },
+      electric: { name: '전기', color: 'bg-yellow-400 text-gray-900' },
+      ice: { name: '얼음', color: 'bg-cyan-300 text-gray-900' },
+      fighting: { name: '격투', color: 'bg-orange-700' },
+      poison: { name: '독', color: 'bg-purple-600' },
+      ground: { name: '땅', color: 'bg-yellow-700' },
+      flying: { name: '비행', color: 'bg-indigo-400' },
+      psychic: { name: '에스퍼', color: 'bg-pink-500' },
+      bug: { name: '벌레', color: 'bg-lime-500 text-gray-900' },
+      rock: { name: '바위', color: 'bg-yellow-800' },
+      ghost: { name: '유령', color: 'bg-purple-800' },
+      dragon: { name: '드래곤', color: 'bg-indigo-700' },
+      steel: { name: '강철', color: 'bg-gray-500' },
+      fairy: { name: '페어리', color: 'bg-pink-300 text-gray-900' },
+      dark: { name: '악', color: 'bg-gray-800' }
+    };
+
+    // Fallback Offline Preset Data for Fast Local Load
+    const OFFLINE_PRESETS = {
+      1: {
+        id: 1,
+        name: "이상해씨",
+        genus: "씨앗포켓몬",
+        height: 0.7,
+        weight: 6.9,
+        types: ["grass", "poison"],
+        desc: "태어나서부터 얼마 동안은 등애 있는 씨앗으로부터 영양을 공급받아 크게 자란다.",
+        img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
+        stats: { hp: 45, atk: 49, def: 49, spatk: 65, spdef: 65, speed: 45 }
+      },
+      4: {
+        id: 4,
+        name: "파이리",
+        genus: "도롱뇽포켓몬",
+        height: 0.6,
+        weight: 8.5,
+        types: ["fire"],
+        desc: "파이리 꼬리의 불꽃은 생명력의 상징이다. 건강할 때에는 불꽃도 강하게 타오른다.",
+        img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png",
+        stats: { hp: 39, atk: 52, def: 43, spatk: 60, spdef: 50, speed: 65 }
+      },
+      7: {
+        id: 7,
+        name: "꼬부기",
+        genus: "꼬마거북포켓몬",
+        height: 0.5,
+        weight: 9.0,
+        types: ["water"],
+        desc: "등껍질에 숨어 몸을 보호한다. 틈이 생기면 물을 분사하여 반격한다.",
+        img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/7.png",
+        stats: { hp: 44, atk: 48, def: 65, spatk: 50, spdef: 64, speed: 43 }
+      },
+      25: {
+        id: 25,
+        name: "피카츄",
+        genus: "쥐포켓몬",
+        height: 0.4,
+        weight: 6.0,
+        types: ["electric"],
+        desc: "양 뺨에는 전기를 저장하는 주머니가 있다. 화가 나면 저장했던 전기를 한꺼번에 방출한다.",
+        img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png",
+        stats: { hp: 35, atk: 55, def: 40, spatk: 50, spdef: 50, speed: 90 }
+      }
+    };
+
+    // Application State Variables
+    let currentPokeId = 1;
+    let selectedTypeFilter = null;
+
+    // DOM Elements Reference
+    const elPokeId = document.getElementById('poke-id');
+    const elPokeName = document.getElementById('poke-name');
+    const elPokeImg = document.getElementById('poke-img');
+    const elPokeHeight = document.getElementById('poke-height');
+    const elPokeWeight = document.getElementById('poke-weight');
+    const elPokeGenus = document.getElementById('poke-genus');
+    const elPokeTypes = document.getElementById('poke-types');
+    const elPokeDesc = document.getElementById('poke-desc');
+    const elLoading = document.getElementById('loading-spinner');
+    const elSearchInput = document.getElementById('search-input');
+    const elTypeContainer = document.getElementById('type-filter-container');
+
+    // UI Toast Notification
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // Initialize Type Filter Buttons
+    function initTypeFilters() {
+      elTypeContainer.innerHTML = '';
+
+      // "전체" (All) button
+      const allBtn = document.createElement('button');
+      allBtn.className = `px-2 py-1 text-xs font-bold rounded border transition ${selectedTypeFilter === null ? 'bg-white text-black border-white shadow' : 'bg-gray-700 text-gray-300 border-gray-600'}`;
+      allBtn.textContent = '전체';
+      allBtn.onclick = () => {
+        audioSFX.playBeep(400);
+        selectedTypeFilter = null;
+        initTypeFilters();
+      };
+      elTypeContainer.appendChild(allBtn);
+
+      // Render type buttons
+      Object.keys(POKEMON_TYPES_KO).forEach(typeKey => {
+        const typeInfo = POKEMON_TYPES_KO[typeKey];
+        const btn = document.createElement('button');
+        const isActive = selectedTypeFilter === typeKey;
+        btn.className = `px-2 py-1 text-xs font-bold rounded border transition ${typeInfo.color} ${isActive ? 'ring-2 ring-white border-white scale-105' : 'opacity-80 border-transparent hover:opacity-100'}`;
+        btn.textContent = typeInfo.name;
+        btn.onclick = () => {
+          audioSFX.playBeep(500);
+          selectedTypeFilter = typeKey;
+          initTypeFilters();
+          showToast(`'${typeInfo.name}' 속성 검색 기능 활성화`);
+        };
+        elTypeContainer.appendChild(btn);
+      });
+    }
+
+    // Render Stats on UI
+    function renderStats(stats) {
+      const maxStatVal = 200; // Normalization base for percentage width calculation
+      
+      document.getElementById('stat-hp-val').textContent = stats.hp;
+      document.getElementById('stat-hp-bar').style.width = Math.min(100, (stats.hp / maxStatVal) * 100) + '%';
+
+      document.getElementById('stat-atk-val').textContent = stats.atk;
+      document.getElementById('stat-atk-bar').style.width = Math.min(100, (stats.atk / maxStatVal) * 100) + '%';
+
+      document.getElementById('stat-def-val').textContent = stats.def;
+      document.getElementById('stat-def-bar').style.width = Math.min(100, (stats.def / maxStatVal) * 100) + '%';
+
+      document.getElementById('stat-spatk-val').textContent = stats.spatk;
+      document.getElementById('stat-spatk-bar').style.width = Math.min(100, (stats.spatk / maxStatVal) * 100) + '%';
+
+      document.getElementById('stat-spdef-val').textContent = stats.spdef;
+      document.getElementById('stat-spdef-bar').style.width = Math.min(100, (stats.spdef / maxStatVal) * 100) + '%';
+
+      document.getElementById('stat-speed-val').textContent = stats.speed;
+      document.getElementById('stat-speed-bar').style.width = Math.min(100, (stats.speed / maxStatVal) * 100) + '%';
+
+      const total = stats.hp + stats.atk + stats.def + stats.spatk + stats.spdef + stats.speed;
+      document.getElementById('stat-total').textContent = `총합: ${total}`;
+    }
+
+    // Render Type Badges on Screen
+    function renderTypeBadges(types) {
+      elPokeTypes.innerHTML = '';
+      types.forEach(t => {
+        const typeKey = typeof t === 'string' ? t : t.type.name;
+        const info = POKEMON_TYPES_KO[typeKey] || { name: typeKey, color: 'bg-gray-600' };
+        const badge = document.createElement('span');
+        badge.className = `px-2 py-0.5 text-white rounded text-xs font-bold ${info.color}`;
+        badge.textContent = info.name;
+        elPokeTypes.appendChild(badge);
+      });
+    }
+
+    // Render Main Data to UI Screen
+    function displayPokemonData(data) {
+      currentPokeId = data.id;
+      elPokeId.textContent = `No.${String(data.id).padStart(4, '0')}`;
+      elPokeName.textContent = data.name;
+      elPokeHeight.textContent = `${data.height}m`;
+      elPokeWeight.textContent = `${data.weight}kg`;
+      elPokeGenus.textContent = data.genus || '포켓몬';
+      elPokeDesc.textContent = data.desc || '설명 정보가 없습니다.';
+      elPokeImg.src = data.img;
+
+      renderTypeBadges(data.types);
+      renderStats(data.stats);
+      audioSFX.playSuccess();
+    }
+
+    // Fetch Pokemon Data from PokéAPI in Korean
+    async function loadPokemon(query) {
+      elLoading.classList.remove('hidden');
+
+      // Check if Offline Preset exists for Instant Display
+      if (typeof query === 'number' && OFFLINE_PRESETS[query]) {
+        setTimeout(() => {
+          displayPokemonData(OFFLINE_PRESETS[query]);
+          elLoading.classList.add('hidden');
+        }, 150);
+        return;
+      }
+
+      try {
+        // Fetch base pokemon endpoint
+        const mainRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${String(query).toLowerCase().trim()}`);
+        if (!mainRes.ok) throw new Error('포켓몬을 찾을 수 없습니다.');
+        const mainData = await mainRes.json();
+
+        // Fetch species endpoint for Korean name & description
+        const speciesRes = await fetch(mainData.species.url);
+        if (!speciesRes.ok) throw new Error('상세 종 정보를 불러올 수 없습니다.');
+        const speciesData = await speciesRes.json();
+
+        // Find Korean Name
+        const koNameObj = speciesData.names.find(n => n.language.name === 'ko');
+        const koName = koNameObj ? koNameObj.name : mainData.name;
+
+        // Find Korean Genus (분류)
+        const koGenusObj = speciesData.genera.find(g => g.language.name === 'ko');
+        const koGenus = koGenusObj ? koGenusObj.genus : '포켓몬';
+
+        // Find Korean Flavor Text Description
+        const koFlavorObj = speciesData.flavor_text_entries.reverse().find(f => f.language.name === 'ko');
+        const koDesc = koFlavorObj 
+          ? koFlavorObj.flavor_text.replace(/[\f\n\r]/g, ' ') 
+          : '한글 도감 설명이 제공되지 않는 포켓몬입니다.';
+
+        // Format Image
+        const imgUrl = mainData.sprites.other['official-artwork'].front_default 
+          || mainData.sprites.front_default;
+
+        // Format Base Stats
+        const statsObj = {
+          hp: mainData.stats[0].base_stat,
+          atk: mainData.stats[1].base_stat,
+          def: mainData.stats[2].base_stat,
+          spatk: mainData.stats[3].base_stat,
+          spdef: mainData.stats[4].base_stat,
+          speed: mainData.stats[5].base_stat
+        };
+
+        const formattedData = {
+          id: mainData.id,
+          name: koName,
+          genus: koGenus,
+          height: mainData.height / 10, // decimeters to meters
+          weight: mainData.weight / 10, // hectograms to kg
+          types: mainData.types.map(t => t.type.name),
+          desc: koDesc,
+          img: imgUrl,
+          stats: statsObj
+        };
+
+        displayPokemonData(formattedData);
+
+      } catch (err) {
+        showToast(err.message || '포켓몬 정보 로딩 실패!');
+        audioSFX.playBeep(200, 'sawtooth', 0.2);
+      } finally {
+        elLoading.classList.add('hidden');
+      }
+    }
+
+    // Event Listeners for Navigation & Controls
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      audioSFX.playBeep(450);
+      if (currentPokeId > 1) {
+        loadPokemon(currentPokeId - 1);
+      } else {
+        showToast('첫 번째 포켓몬입니다.');
+      }
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      audioSFX.playBeep(450);
+      loadPokemon(currentPokeId + 1);
+    });
+
+    document.getElementById('btn-random').addEventListener('click', () => {
+      audioSFX.playBeep(600);
+      const randomId = Math.floor(Math.random() * 1010) + 1; // Gen 1-9 scope
+      loadPokemon(randomId);
+    });
+
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const q = elSearchInput.value.trim();
+      if (q) {
+        audioSFX.playBeep(550);
+        loadPokemon(q);
+      } else {
+        showToast('검색어를 입력해 주세요.');
+      }
+    });
+
+    elSearchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('search-btn').click();
+      }
+    });
+
+    // D-Pad Keyboard Arrow Controls
+    document.getElementById('btn-up').addEventListener('click', () => {
+      audioSFX.playBeep(480);
+      loadPokemon(currentPokeId + 10);
+    });
+    document.getElementById('btn-down').addEventListener('click', () => {
+      audioSFX.playBeep(480);
+      if (currentPokeId > 10) loadPokemon(currentPokeId - 10);
+    });
+    document.getElementById('btn-left').addEventListener('click', () => {
+      document.getElementById('btn-prev').click();
+    });
+    document.getElementById('btn-right').addEventListener('click', () => {
+      document.getElementById('btn-next').click();
+    });
+
+    document.getElementById('speaker-btn').addEventListener('click', () => {
+      audioSFX.enabled = !audioSFX.enabled;
+      showToast(audioSFX.enabled ? '사운드 효과 키기' : '사운드 효과 끄기');
+    });
+
+    // On Page Load Initialization
+    window.onload = () => {
+      initTypeFilters();
+      loadPokemon(1); // Load Bulbasaur (이상해씨) default
+    };
+  </script>
+</body>
+</html>
